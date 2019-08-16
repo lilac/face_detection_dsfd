@@ -214,34 +214,70 @@ def test_oneimage():
     max_im_shrink = ( (2000.0*2000.0) / (img.shape[0] * img.shape[1])) ** 0.5
     shrink = max_im_shrink if max_im_shrink < 1 else 1
 
-    det0 = infer(net , img , transform , thresh , cuda , shrink)
-    det1 = infer_flip(net , img , transform , thresh , cuda , shrink)
+    # det0 = infer(net , img , transform , thresh , cuda , shrink)
+    # det1 = infer_flip(net , img , transform , thresh , cuda , shrink)
+    # # shrink detecting and shrink only detect big face
+    # st = 0.5 if max_im_shrink >= 0.75 else 0.5 * max_im_shrink
+    # det_s = infer(net , img , transform , thresh , cuda , st)
+    # index = np.where(np.maximum(det_s[:, 2] - det_s[:, 0] + 1, det_s[:, 3] - det_s[:, 1] + 1) > 30)[0]
+    # det_s = det_s[index, :]
+    # # enlarge one times
+    # factor = 2
+    # bt = min(factor, max_im_shrink) if max_im_shrink > 1 else (st + max_im_shrink) / 2
+    # det_b = infer(net , img , transform , thresh , cuda , bt)
+    # # enlarge small iamge x times for small face
+    # if max_im_shrink > factor:
+    #     bt *= factor
+    #     while bt < max_im_shrink:
+    #         det_b = np.row_stack((det_b, infer(net , img , transform , thresh , cuda , bt)))
+    #         bt *= factor
+    #     det_b = np.row_stack((det_b, infer(net , img , transform , thresh , cuda , max_im_shrink) ))
+    # # enlarge only detect small face
+    # if bt > 1:
+    #     index = np.where(np.minimum(det_b[:, 2] - det_b[:, 0] + 1, det_b[:, 3] - det_b[:, 1] + 1) < 100)[0]
+    #     det_b = det_b[index, :]
+    # else:
+    #     index = np.where(np.maximum(det_b[:, 2] - det_b[:, 0] + 1, det_b[:, 3] - det_b[:, 1] + 1) > 30)[0]
+    #     det_b = det_b[index, :]
+    # det = np.row_stack((det0, det1, det_s, det_b))
+    # det = bbox_vote(det)
+    # vis_detections(img , det , img_id, args.visual_threshold)
+
+    # det0 = infer(net, img, transform, thresh, cuda, shrink)
+    # det1 = infer_flip(net, img, transform, thresh, cuda, shrink)
+    # # shrink detecting and shrink only detect big face
+    # st = 0.5 if max_im_shrink >= 0.75 else 0.5 * max_im_shrink
+    # det_s = infer(net, img, transform, thresh, cuda, st)
+    # index = np.where(np.maximum(det_s[:, 2] - det_s[:, 0] + 1, det_s[:, 3] - det_s[:, 1] + 1) > 30)[0]
+    # det_s = det_s[index, :]
+    # # enlarge one times
+    # factor = 2
+    # bt = min(factor, max_im_shrink) if max_im_shrink > 1 else (st + max_im_shrink) / 2
+    # det_b = infer(net, img, transform, thresh, cuda, bt)
+    #
+    # # enlarge only detect small face
+    # if bt > 1:
+    #     index = np.where(np.minimum(det_b[:, 2] - det_b[:, 0] + 1, det_b[:, 3] - det_b[:, 1] + 1) < 100)[0]
+    #     det_b = det_b[index, :]
+    # else:
+    #     index = np.where(np.maximum(det_b[:, 2] - det_b[:, 0] + 1, det_b[:, 3] - det_b[:, 1] + 1) > 30)[0]
+    #     det_b = det_b[index, :]
+    #
+    # det = np.row_stack((det0, det1, det_s, det_b))
+    # det = bbox_vote(det.astype(float))
+    # vis_detections(img, det, img_id, args.visual_threshold)
+
+    det0 = infer(net, img, transform, thresh, cuda, shrink)
+    det1 = infer_flip(net, img, transform, thresh, cuda, shrink)
     # shrink detecting and shrink only detect big face
     st = 0.5 if max_im_shrink >= 0.75 else 0.5 * max_im_shrink
-    det_s = infer(net , img , transform , thresh , cuda , st)
+    det_s = infer(net, img, transform, thresh, cuda, st)
     index = np.where(np.maximum(det_s[:, 2] - det_s[:, 0] + 1, det_s[:, 3] - det_s[:, 1] + 1) > 30)[0]
     det_s = det_s[index, :]
-    # enlarge one times
-    factor = 2
-    bt = min(factor, max_im_shrink) if max_im_shrink > 1 else (st + max_im_shrink) / 2
-    det_b = infer(net , img , transform , thresh , cuda , bt)
-    # enlarge small iamge x times for small face
-    if max_im_shrink > factor:
-        bt *= factor
-        while bt < max_im_shrink:
-            det_b = np.row_stack((det_b, infer(net , img , transform , thresh , cuda , bt)))
-            bt *= factor
-        det_b = np.row_stack((det_b, infer(net , img , transform , thresh , cuda , max_im_shrink) ))
-    # enlarge only detect small face
-    if bt > 1:
-        index = np.where(np.minimum(det_b[:, 2] - det_b[:, 0] + 1, det_b[:, 3] - det_b[:, 1] + 1) < 100)[0]
-        det_b = det_b[index, :]
-    else:
-        index = np.where(np.maximum(det_b[:, 2] - det_b[:, 0] + 1, det_b[:, 3] - det_b[:, 1] + 1) > 30)[0]
-        det_b = det_b[index, :]
-    det = np.row_stack((det0, det1, det_s, det_b))
-    det = bbox_vote(det)
-    vis_detections(img , det , img_id, args.visual_threshold)
+
+    det = np.row_stack((det0, det1, det_s))
+    det = bbox_vote(det.astype(float))
+    vis_detections(img, det, img_id, args.visual_threshold)
 
 
 if __name__ == '__main__':
