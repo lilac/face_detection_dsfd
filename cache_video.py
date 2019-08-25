@@ -119,11 +119,14 @@ def main(input_path, output_path, detection_model_path='weights/WIDERFace_DSFD_R
                     det.append(curr_det)
                     j += 1
 
-            det = np.row_stack((det))
-            # if det.shape[0] > 1:
-            #     det = bbox_vote(det.astype(float))
-            det_filtered = det[det[:, 4] > 0.5, :4]
-            det_list.append(det_filtered)
+            if len(det) == 0:
+                det_list.append(np.array([], dtype='float32'))
+            else:
+                det = np.row_stack((det))
+                # if det.shape[0] > 1:
+                #     det = bbox_vote(det.astype(float))
+                det_filtered = det[det[:, 4] > 0.5, :4]
+                det_list.append(det_filtered)
 
             # Render
             if display:
