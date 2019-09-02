@@ -5,16 +5,16 @@ import logging
 import cache_video
 
 
-def main(in_dir, out_dir=None, indices=None, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', batch_size=8):
+def main(in_dir, out_dir=None, indices=None, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', batch_size=8,
+         out_postfix='_dsfd.pkl'):
     out_dir = in_dir if out_dir is None else out_dir
     vid_paths = sorted(glob(os.path.join(in_dir, '*.mp4')))
     vid_paths = eval('vid_paths[%s]' % indices) if indices is not None else vid_paths
-    postfix = '_dsfd.pkl'
 
     # For each video file
     for i, vid_path in enumerate(vid_paths):
         vid_name = os.path.splitext(os.path.basename(vid_path))[0]
-        curr_cache_path = os.path.join(out_dir, vid_name + postfix)
+        curr_cache_path = os.path.join(out_dir, vid_name + out_postfix)
 
         if os.path.exists(curr_cache_path):
             print('[%d/%d] Skipping "%s"' % (i + 1, len(vid_paths), vid_name))
@@ -43,5 +43,7 @@ if __name__ == "__main__":
                         help='path to face detection model')
     parser.add_argument('-b', '--batch-size', default=8, type=int, metavar='N',
                         help='batch size (default: 8)')
+    parser.add_argument('-op', '--out_postfix', default='_dsfd.pkl', metavar='POSTFIX',
+                        help='output file postfix')
     args = parser.parse_args()
-    main(args.input, args.output, args.indices, args.detection_model, args.batch_size)
+    main(args.input, args.output, args.indices, args.detection_model, args.batch_size, args.out_postfix)

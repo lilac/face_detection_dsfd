@@ -3,9 +3,9 @@ import torch
 import torchvision
 import torch.nn as nn
 # from data.config import TestBaseTransform, widerface_640 as cfg
-from data import TestBaseTransform, widerface_640 as cfg
+from face_detection_dsfd.data import TestBaseTransform, widerface_640 as cfg
 # from layers import Detect, get_prior_boxes, FEM, pa_multibox, mio_module, upsample_product
-from layers import *
+from face_detection_dsfd.layers import *
 # from utils import resize_image
 import torch.nn.functional as F
 

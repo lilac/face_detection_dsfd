@@ -2,7 +2,7 @@ from __future__ import division
 import torch
 from torch.autograd import Function
 from ..box_utils import decode, nms, center_size
-from data import widerface_640 as cfg
+from face_detection_dsfd.data import widerface_640 as cfg
 import pdb
 
 class Detect(Function):

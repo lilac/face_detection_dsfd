@@ -6,12 +6,13 @@ import numpy as np
 import cv2
 import torch
 # from face_ssd import build_ssd
-from face_ssd_infer import SSD
-from data import widerface_640, TestBaseTransform
-from layers.functions.detection import Detect
+from face_detection_dsfd.face_ssd_infer import SSD
+from face_detection_dsfd.data import widerface_640, TestBaseTransform
+from face_detection_dsfd.layers.functions.detection import Detect
 
 
-def main(input_path, output_path, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', batch_size=8, display=False):
+def main(input_path, output_path, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', batch_size=8,
+         display=False, out_postfix='_dsfd.pkl'):
     cuda = True
     torch.set_grad_enabled(False)
     device = torch.device('cuda:{}'.format(0))
@@ -20,13 +21,12 @@ def main(input_path, output_path, detection_model_path='weights/WIDERFace_DSFD_R
     else:
         torch.set_default_tensor_type('torch.FloatTensor')
 
-    postfix = '_dsfd.pkl'
     if output_path is None:
-        output_filename = os.path.splitext(os.path.basename(input_path))[0] + postfix
+        output_filename = os.path.splitext(os.path.basename(input_path))[0] + out_postfix
         output_dir = os.path.split(input_path)[0]
         output_path = os.path.join(output_dir, output_filename)
     elif os.path.isdir(output_path):
-        output_filename = os.path.splitext(os.path.basename(input_path))[0] + postfix
+        output_filename = os.path.splitext(os.path.basename(input_path))[0] + out_postfix
         output_path = os.path.join(output_path, output_filename)
 
     # Initialize detection model
@@ -302,5 +302,7 @@ if __name__ == "__main__":
                         help='batch size (default: 8)')
     parser.add_argument('-d', '--display', action='store_true',
                         help='display the rendering')
+    parser.add_argument('-op', '--out_postfix', default='_dsfd.pkl', metavar='POSTFIX',
+                        help='output file postfix')
     args = parser.parse_args()
-    main(args.input, args.output, args.detection_model, args.batch_size, args.display)
+    main(args.input, args.output, args.detection_model, args.batch_size, args.display, args.out_postfix)
