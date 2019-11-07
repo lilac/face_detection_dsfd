@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 import cv2
 import torch
+import torch.nn as nn
 # from face_ssd import build_ssd
 from face_detection_dsfd.face_ssd_infer import SSD
 from face_detection_dsfd.data import widerface_640, TestBaseTransform
@@ -35,6 +36,10 @@ def main(input_path, output_path, detection_model_path='weights/WIDERFace_DSFD_R
     net = SSD("test")
     net.load_state_dict(torch.load(detection_model_path))
     net.eval()
+
+    # Support multiple GPUs
+    if gpus and len(gpus) > 1:
+        net = nn.DataParallel(net, gpus)
 
     # Initialize detection model
     # cfg = widerface_640
