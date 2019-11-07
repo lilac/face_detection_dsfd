@@ -9,13 +9,15 @@ import torch
 from face_detection_dsfd.face_ssd_infer import SSD
 from face_detection_dsfd.data import widerface_640, TestBaseTransform
 from face_detection_dsfd.layers.functions.detection import Detect
+from hyper_gen.utils import utils
 
 
 def main(input_path, output_path, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', batch_size=8,
-         display=False, out_postfix='_dsfd.pkl'):
+         display=False, out_postfix='_dsfd.pkl', gpus=None):
     cuda = True
     torch.set_grad_enabled(False)
-    device = torch.device('cuda:{}'.format(0))
+    # device = torch.device('cuda:{}'.format(0))
+    device, gpus = utils.set_device(gpus)
     if cuda and torch.cuda.is_available():
         torch.set_default_tensor_type('torch.cuda.FloatTensor')
     else:
@@ -304,5 +306,7 @@ if __name__ == "__main__":
                         help='display the rendering')
     parser.add_argument('-op', '--out_postfix', default='_dsfd.pkl', metavar='POSTFIX',
                         help='output file postfix')
+    parser.add_argument('--gpus', nargs='+', type=int, metavar='N',
+                        help='list of gpu ids to use (default: all)')
     args = parser.parse_args()
-    main(args.input, args.output, args.detection_model, args.batch_size, args.display, args.out_postfix)
+    main(args.input, args.output, args.detection_model, args.batch_size, args.display, args.out_postfix, args.gpus)
