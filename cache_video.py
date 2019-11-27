@@ -10,15 +10,26 @@ import torch.nn as nn
 from face_detection_dsfd.face_ssd_infer import SSD
 from face_detection_dsfd.data import widerface_640, TestBaseTransform
 from face_detection_dsfd.layers.functions.detection import Detect
-from hyper_gen.utils import utils
+
+
+def set_device(gpus=None, use_cuda=True):
+    use_cuda = torch.cuda.is_available() if use_cuda else use_cuda
+    if use_cuda:
+        gpus = list(range(torch.cuda.device_count())) if not gpus else gpus
+        print('=> using GPU devices: {}'.format(', '.join(map(str, gpus))))
+    else:
+        gpus = None
+        print('=> using CPU device')
+    device = torch.device('cuda:{}'.format(gpus[0])) if gpus else torch.device('cpu')
+
+    return device, gpus
 
 
 def main(input_path, output_path, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', batch_size=8,
          display=False, out_postfix='_dsfd.pkl', gpus=None):
     cuda = True
     torch.set_grad_enabled(False)
-    # device = torch.device('cuda:{}'.format(0))
-    device, gpus = utils.set_device(gpus)
+    device, gpus = set_device(gpus)
     if cuda and torch.cuda.is_available():
         torch.set_default_tensor_type('torch.cuda.FloatTensor')
     else:
