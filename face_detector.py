@@ -26,7 +26,7 @@ class FaceDetector(object):
 
         # Initialize device
         torch.set_grad_enabled(False)
-        self.device, self.gpus = set_device(gpus)
+        self.device, self.gpus = set_device(gpus, silence=True)
 
         # Initialize detection model
         self.net = SSD("test").to(self.device)
@@ -56,6 +56,7 @@ class FaceDetector(object):
 
         if os.path.isfile(output_path):
             return
+        print('=> Detecting face in video: "%s..."' % os.path.basename(input_path))
 
         # Open input video file
         cap = cv2.VideoCapture(input_path)
@@ -74,7 +75,7 @@ class FaceDetector(object):
         frame_bgr_list = []
         frame_tensor_list = []
         det_list = []
-        for i in tqdm(range(total_frames)):
+        for i in tqdm(range(total_frames), unit='frames'):
             ret, frame = cap.read()
             if frame is None:
                 continue
@@ -139,14 +140,16 @@ class FaceDetector(object):
         torch.set_default_tensor_type('torch.FloatTensor')
 
 
-def set_device(gpus=None, use_cuda=True):
+def set_device(gpus=None, use_cuda=True, silence=False):
     use_cuda = torch.cuda.is_available() if use_cuda else use_cuda
     if use_cuda:
         gpus = list(range(torch.cuda.device_count())) if not gpus else gpus
-        print('=> using GPU devices: {}'.format(', '.join(map(str, gpus))))
+        if not silence:
+            print('=> using GPU devices: {}'.format(', '.join(map(str, gpus))))
     else:
         gpus = None
-        print('=> using CPU device')
+        if not silence:
+            print('=> using CPU device')
     device = torch.device('cuda:{}'.format(gpus[0])) if gpus else torch.device('cpu')
 
     return device, gpus
