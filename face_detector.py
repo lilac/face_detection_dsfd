@@ -56,7 +56,7 @@ class FaceDetector(object):
 
         if os.path.isfile(output_path):
             return
-        print('=> Detecting face in video: "%s..."' % os.path.basename(input_path))
+        print('=> Detecting faces in video: "%s..."' % os.path.basename(input_path))
 
         # Open input video file
         cap = cv2.VideoCapture(input_path)
