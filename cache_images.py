@@ -4,12 +4,13 @@ import pickle
 import numpy as np
 import cv2
 import torch
+import torch.nn.functional as F
 from face_detection_dsfd.face_ssd_infer import SSD
 from face_detection_dsfd.data import widerface_640, TestBaseTransform
 
 
 def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', postfix='.jpg',
-         out_postfix='_dsfd.pkl'):
+         out_postfix='_dsfd.pkl', image_padding=None, display=False):
     # Verification
     if os.path.isfile(input):
         img_paths = [input]
@@ -52,9 +53,18 @@ def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERF
 
         # Process image
         img = cv2.imread(img_path)
-        frame_tensor = torch.from_numpy(transform(img)[0]).permute(2, 0, 1).unsqueeze(0).to(device)
-        detections = net(frame_tensor)
         image_size = img.shape[:2]
+        frame_tensor = torch.from_numpy(transform(img)[0]).permute(2, 0, 1).unsqueeze(0).to(device)
+
+        # Pad image
+        if image_padding is not None:
+            image_pad_size = np.round(np.array(image_size[::-1]) * image_padding).astype(int)
+            frame_tensor = F.pad(frame_tensor, [image_pad_size[0], image_pad_size[0],
+                                                image_pad_size[1], image_pad_size[1]], 'reflect')
+            image_size = frame_tensor.shape[2:]
+
+        # Detect faces
+        detections = net(frame_tensor)
 
         det = []
         shrink = 1.0
@@ -74,8 +84,12 @@ def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERF
             det = np.row_stack((det))
             det = det[det[:, 4] > 0.5, :4]
 
+        # Restore detection relative to original image
+        if image_padding is not None:
+            det[:, :2] -= image_pad_size
+            det[:, 2:] -= image_pad_size
+
         # Render
-        display = True
         if display:
             det_display = np.round(det).astype(int)
             render_img = img
@@ -106,5 +120,10 @@ if __name__ == "__main__":
                         help='input image postfix')
     parser.add_argument('-op', '--out_postfix', default='_dsfd.pkl', metavar='POSTFIX',
                         help='output file postfix')
+    parser.add_argument('-ip', '--image_padding', type=float, metavar='F',
+                        help='image padding relative to image size')
+    parser.add_argument('-d', '--display', action='store_true',
+                        help='display the rendering')
     args = parser.parse_args()
-    main(args.input, args.output, args.indices, args.detection_model, args.postfix, args.out_postfix)
+    main(args.input, args.output, args.indices, args.detection_model, args.postfix, args.out_postfix,
+         args.image_padding, args.display)
