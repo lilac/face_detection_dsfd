@@ -39,8 +39,8 @@ class FaceDetector(object):
         self.thresh = self.cfg['conf_thresh']
 
         # Support multiple GPUs
-        if gpus and len(gpus) > 1:
-            self.net = nn.DataParallel(self.net, gpus)
+        if self.gpus and len(self.gpus) > 1:
+            self.net = nn.DataParallel(self.net, self.gpus)
 
         # Reset default tensor type
         # torch.set_default_tensor_type('torch.FloatTensor')

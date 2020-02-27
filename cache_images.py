@@ -9,18 +9,32 @@ from face_detection_dsfd.face_ssd_infer import SSD
 from face_detection_dsfd.data import widerface_640, TestBaseTransform
 
 
+def parse_images(input, postfix='.jpg', indices=None):
+    out_dir = None
+    if len(input) == 1:
+        assert os.path.isfile(input[0]) or os.path.isdir(input[0]), 'input must be a file or a directory: "%s"' % input
+        if os.path.isfile(input[0]):
+            img_paths = [input]
+            out_dir = os.path.split(input[0])[0]
+        elif os.path.isdir(input):
+            img_paths = sorted(glob(os.path.join(input, '*' + postfix)))
+            out_dir = input[0]
+    elif len(input) == 2:
+        if os.path.isdir(input[0]) and os.path.isfile(input[1]):    # Directory and list file
+            rel_paths = np.loadtxt(input[1], str)
+            img_paths = [os.path.join(input[0], p) for p in rel_paths]
+            out_dir = input[0]
+
+    img_paths = eval('img_paths[%s]' % indices) if indices is not None else img_paths
+
+    return img_paths, out_dir
+
+
 def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', postfix='.jpg',
          out_postfix='_dsfd.pkl', image_padding=None, display=False):
-    # Verification
-    if os.path.isfile(input):
-        img_paths = [input]
-        out_dir = os.path.split(input)[0] if out_dir is None else out_dir
-    elif os.path.isdir(input):
-        img_paths = sorted(glob(os.path.join(input, '*' + postfix)))
-        out_dir = input if out_dir is None else out_dir
-    else:
-        raise RuntimeError('input is not a path to a file or a directory: ' + input)
-    img_paths = eval('img_paths[%s]' % indices) if indices is not None else img_paths
+    # Parse images
+    img_paths, suggested_out_dir = parse_images(input, postfix, indices)
+    out_dir = suggested_out_dir if out_dir is None else out_dir
 
     # Initialize device
     cuda = True
@@ -108,8 +122,8 @@ if __name__ == "__main__":
     # Parse program arguments
     import argparse
     parser = argparse.ArgumentParser(os.path.splitext(os.path.basename(__file__))[0])
-    parser.add_argument('input', metavar='PATH',
-                        help='path input image or directory')
+    parser.add_argument('input', metavar='PATH', nargs='+',
+                        help='input paths')
     parser.add_argument('-o', '--output', metavar='DIR',
                         help='output directory')
     parser.add_argument('-i', '--indices', default=None,
