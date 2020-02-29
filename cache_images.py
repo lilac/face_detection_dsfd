@@ -20,8 +20,9 @@ def parse_images(input, postfix='.jpg', indices=None):
             img_paths = sorted(glob(os.path.join(input, '*' + postfix)))
             out_dir = input[0]
     elif len(input) == 2:
-        if os.path.isdir(input[0]) and os.path.isfile(input[1]):    # Directory and list file
-            rel_paths = np.loadtxt(input[1], str)
+        list_file_path = os.path.join(input[0], input[1]) if not os.path.isfile(input[1]) else input[1]
+        if os.path.isdir(input[0]) and os.path.isfile(list_file_path):    # Directory and list file
+            rel_paths = np.loadtxt(list_file_path, str)
             img_paths = [os.path.join(input[0], p) for p in rel_paths]
             out_dir = input[0]
 
@@ -34,7 +35,7 @@ def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERF
          out_postfix='_dsfd.pkl', image_padding=None, display=False):
     # Parse images
     img_paths, suggested_out_dir = parse_images(input, postfix, indices)
-    out_dir = suggested_out_dir if out_dir is None else out_dir
+    # out_dir = suggested_out_dir if out_dir is None else out_dir
 
     # Initialize device
     cuda = True
@@ -57,7 +58,10 @@ def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERF
     # For each image file
     for n, img_path in enumerate(img_paths):
         img_name = os.path.splitext(os.path.basename(img_path))[0]
-        curr_cache_path = os.path.join(out_dir, img_name + out_postfix)
+        if out_dir is None:
+            curr_cache_path = os.path.splitext(img_path)[0] + out_postfix
+        else:
+            curr_cache_path = os.path.join(out_dir, img_name + out_postfix)
 
         if os.path.exists(curr_cache_path):
             print('[%d/%d] Skipping "%s"' % (n + 1, len(img_paths), img_name))
