@@ -14,10 +14,10 @@ def parse_images(input, postfix='.jpg', indices=None):
     if len(input) == 1:
         assert os.path.isfile(input[0]) or os.path.isdir(input[0]), 'input must be a file or a directory: "%s"' % input
         if os.path.isfile(input[0]):
-            img_paths = [input]
+            img_paths = input
             out_dir = os.path.split(input[0])[0]
-        elif os.path.isdir(input):
-            img_paths = sorted(glob(os.path.join(input, '*' + postfix)))
+        elif os.path.isdir(input[0]):
+            img_paths = sorted(glob(os.path.join(input[0], '*' + postfix)))
             out_dir = input[0]
     elif len(input) == 2:
         list_file_path = os.path.join(input[0], input[1]) if not os.path.isfile(input[1]) else input[1]
@@ -32,7 +32,7 @@ def parse_images(input, postfix='.jpg', indices=None):
 
 
 def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERFace_DSFD_RES152.pth', postfix='.jpg',
-         out_postfix='_dsfd.pkl', image_padding=None, display=False):
+         out_postfix='_dsfd.pkl', image_padding=None, max_res=2048, display=False):
     # Parse images
     img_paths, suggested_out_dir = parse_images(input, postfix, indices)
     # out_dir = suggested_out_dir if out_dir is None else out_dir
@@ -72,27 +72,39 @@ def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERF
         # Process image
         img = cv2.imread(img_path)
         image_size = img.shape[:2]
-        frame_tensor = torch.from_numpy(transform(img)[0]).permute(2, 0, 1).unsqueeze(0).to(device)
+
+        # Scale images above the maximum resolution
+        scale = np.array(image_size[::-1] * 2, dtype=float)
+        shrink = min(max_res / np.max(np.array(image_size)), 1.0)
+        if shrink < 1.0:
+            img_scaled = cv2.resize(img, None, None, fx=shrink, fy=shrink, interpolation=cv2.INTER_LINEAR)
+            image_size = img_scaled.shape[:2]
+            frame_tensor = torch.from_numpy(transform(img_scaled)[0]).permute(2, 0, 1).unsqueeze(0).to(device)
+        else:
+            frame_tensor = torch.from_numpy(transform(img)[0]).permute(2, 0, 1).unsqueeze(0).to(device)
 
         # Pad image
         if image_padding is not None:
             image_pad_size = np.round(np.array(image_size[::-1]) * image_padding).astype(int)
             frame_tensor = F.pad(frame_tensor, [image_pad_size[0], image_pad_size[0],
                                                 image_pad_size[1], image_pad_size[1]], 'reflect')
-            image_size = frame_tensor.shape[2:]
+            image_pad_size = np.round(np.array(img.shape[1::-1]) * image_padding).astype(int)
+            image_size = np.round(np.array(img.shape[1::-1]) * (1 + image_padding * 2)).astype(int)
+            scale = np.array(tuple(image_size) * 2, dtype=float)
 
         # Detect faces
         detections = net(frame_tensor)
 
         det = []
-        shrink = 1.0
-        scale = torch.Tensor([image_size[1] / shrink, image_size[0] / shrink,
-                              image_size[1] / shrink, image_size[0] / shrink])
+        # shrink = 1.0
+        # scale = torch.Tensor([image_size[1] / shrink, image_size[0] / shrink,
+        #                       image_size[1] / shrink, image_size[0] / shrink])
         for i in range(detections.size(1)):
             j = 0
             while detections[0, i, j, 0] >= thresh:
                 curr_det = detections[0, i, j, [1, 2, 3, 4, 0]].cpu().numpy()
-                curr_det[:4] *= scale.cpu().numpy()
+                # curr_det[:4] *= scale.cpu().numpy()
+                curr_det[:4] *= scale
                 det.append(curr_det)
                 j += 1
 
@@ -111,8 +123,12 @@ def main(input, out_dir=None, indices=None, detection_model_path='weights/WIDERF
         if display:
             det_display = np.round(det).astype(int)
             render_img = img
+            if shrink < 1.0:
+                render_img = cv2.resize(render_img, None, None, fx=shrink, fy=shrink, interpolation=cv2.INTER_LINEAR)
+                det_display = (det_display * shrink).astype('float32')
             for rect in det_display:
                 cv2.rectangle(render_img, tuple(rect[:2]), tuple(rect[2:]), (0, 0, 255), 1)
+
             cv2.imshow('render_img', render_img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -140,8 +156,10 @@ if __name__ == "__main__":
                         help='output file postfix')
     parser.add_argument('-ip', '--image_padding', type=float, metavar='F',
                         help='image padding relative to image size')
+    parser.add_argument('-mr', '--max_res', default=2048, type=int, metavar='N',
+                        help='maximum detection resolution (higher resolution images will be scaled down)')
     parser.add_argument('-d', '--display', action='store_true',
                         help='display the rendering')
     args = parser.parse_args()
     main(args.input, args.output, args.indices, args.detection_model, args.postfix, args.out_postfix,
-         args.image_padding, args.display)
+         args.image_padding, args.max_res, args.display)
