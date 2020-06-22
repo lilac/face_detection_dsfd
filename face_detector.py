@@ -16,7 +16,7 @@ class FaceDetector(object):
     def __init__(self, out_postfix='_dsfd.pkl', detection_model_path='weights/WIDERFace_DSFD_RES152.pth',
                  gpus=None, batch_size=8, verbose=0):
         super(FaceDetector, self).__init__()
-        assert torch.cuda.is_available(), 'CUDA must be available!'
+        # assert torch.cuda.is_available(), 'CUDA must be available!'
         self.out_postfix = out_postfix
         self.batch_size = batch_size
         self.verbose = verbose
@@ -138,6 +138,30 @@ class FaceDetector(object):
 
         # Reset default tensor type
         torch.set_default_tensor_type('torch.FloatTensor')
+
+    def detect(self, frame_bgr):
+        frame_tensor = torch.from_numpy(self.transform(frame_bgr)[0]).permute(2, 0, 1).unsqueeze(0).to(self.device)
+        detections = self.net(frame_tensor)[0].unsqueeze(0)
+
+        det = []
+        shrink = 1.0
+        scale = torch.Tensor([frame_bgr.shape[1] / shrink, frame_bgr.shape[0] / shrink,
+                              frame_bgr.shape[1] / shrink, frame_bgr.shape[0] / shrink])
+        for i in range(detections.size(1)):
+            j = 0
+            while detections[0, i, j, 0] >= self.thresh:
+                curr_det = detections[0, i, j, [1, 2, 3, 4, 0]].cpu().numpy()
+                curr_det[:4] *= scale.cpu().numpy()
+                det.append(curr_det)
+                j += 1
+
+        if len(det) == 0:
+            return np.array([], dtype='float32')
+
+        det = np.row_stack((det))
+        det_filtered = det[det[:, 4] > 0.5, :4]
+
+        return det_filtered
 
 
 def set_device(gpus=None, use_cuda=True, silence=False):
